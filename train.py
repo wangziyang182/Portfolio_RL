@@ -12,7 +12,6 @@ parser = argparse.ArgumentParser()
 add_arguments(parser)
 args = parser.parse_args()
 
-print(args.num_asset)
 
 if not os.path.exists("Params"):
     os.mkdir("Params")
@@ -21,18 +20,27 @@ if not os.path.exists("Params"):
 with open("./Params/args.pickle","wb") as f:
     pkl.dump(args,f)
 
+sess = tf.Session()
+feature_depth = args.num_signal_feature
+num_asset = args.num_asset
+horizon = args.horizon
+policy_lr = args.learning_rate_policy_net
+value_lr = args.learning_rate_value_net
+gamma = args.discount_rate
+tc = args.transcation_cost
+optimizer_policy = tf.train.AdamOptimizer(policy_lr)
+optimizer_value = tf.train.AdamOptimizer(policy_lr)
+depth1 = 2
+depth2 = 1
 
-# sess = tf.Session()
-# feature_depth = 6
-# num_asset = 10
-# horizon = 50
-# optimizer = tf.train.AdamOptimizer(0.01)
-# tc = 0.02
-# depth1 = 2
-# depth2 = 1
 
-# policy = Policy_Net(sess,feature_depth,num_asset,horizon,optimizer,tc,depth1,depth2)
-# sess.run(tf.global_variables_initializer())
+
+policy = Policy_Net(sess,feature_depth,num_asset,horizon,optimizer,tc,depth1,depth2)
+
+value = Value_Net(sess,optimizer,feature_depth,num_asset,horizon,depth1 = 6)
+
+
+sess.run(tf.global_variables_initializer())
 
 # with open('/Users/william/Google Drive/STUDY/Columbia 2019 Spring/RL8100/Project/Finance/Portfolio_RL/Data/input_tensor.pkl','rb') as f:
 #     data = pkl.load(f)

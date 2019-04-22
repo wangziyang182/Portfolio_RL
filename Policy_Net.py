@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
 import pickle as pkl
-from utils import add_FC_layer
+from utils import add_FC_layer, get_normal
+
 
 #haven't add cash bias into it yet
 
@@ -10,7 +11,7 @@ class Policy_Net():
     Actor Critic
     '''
 
-    def __init__(self,sess,feature_depth,num_asset,horizon,optimizer,trading_cost,depth1,depth2):
+    def __init__(self,sess,feature_depth,num_asset,horizon,optimizer,trading_cost,depth1,depth2,sigma):
 
 
         self.num_asset = num_asset
@@ -21,13 +22,12 @@ class Policy_Net():
         self.tc = tc
         self.depth1 = depth1
         self.depth2 = depth2
+        self.sigma = sigma
 
 
         with tf.variable_scope('input'):
             self.state_tensor = tf.placeholder(tf.float32,[None,self.num_asset,self.horizon,self.feature_depth])
             self.normalize_state_tensosr = tf.div(self.state_tensor,self.state_tensor[:,:,-1:,:])
-            # self.state_tensor = self.state_tensor / self.state_tensor[:,:,-1:,:]
-
             self.w_t_prev = tf.placeholder(tf.float32,[None,self.num_asset]) #+ 1])
 
         with tf.variable_scope('policy_net'):
@@ -42,6 +42,7 @@ class Policy_Net():
                     padding='valid',
                     data_format='channels_last',
                     activation=tf.nn.relu,
+                    kernel_initializer=tf.random_normal_initializer(stddev=0.1, dtype=tf.float32),
                     bias_initializer=tf.zeros_initializer(),
                 )
             self.shape = tf.shape(self.conv1)
@@ -55,6 +56,7 @@ class Policy_Net():
                     padding='valid',
                     data_format='channels_last',
                     activation=tf.nn.relu,
+                    kernel_initializer=tf.random_normal_initializer(stddev=0.1, dtype=tf.float32),
                     bias_initializer=tf.zeros_initializer(),
                 )
 
@@ -70,47 +72,47 @@ class Policy_Net():
                     strides=(1, 1),
                     padding='valid',
                     data_format='channels_last',
-                    activation=tf.nn.relu,
+                    activation=tf.nn.tanh,
+                    kernel_initializer=tf.random_normal_initializer(stddev=0.1, dtype=tf.float32),
                     use_bias=True,
                     bias_initializer=tf.zeros_initializer(),
                 )
 
             in_size = int(self.conv3.get_shape()[1])
             out_size = in_size
-            print(in_size)
-            print(out_size)
             self.FC_input = tf.squeeze(self.conv3,[-1,-2])
 
 
             with tf.variable_scope('fully_connected'):
-                # self.fl = self.add_layer(self.conv3_input,in_size,out_size, activation_function = tf.nn.tanh)
                 self.fl = add_FC_layer(self.FC_input,in_size,out_size, activation_function = tf.nn.tanh)
-            # assert tf.shape(self.fl)[0] == 1, "check fully connected layer 1st dimension"
             
             self.w_t = self.fl/tf.reduce_sum(tf.abs(self.fl),axis = 1)
+            # w_t = self.w_t
+            Sigma = tf.diag(sigma)
+            Sigma_inv = tf.linalg.inv(Sigma)
+
             self.w_t = tf.transpose(self.w_t,perm = [1,0])
+            top = self.w_t[:-1,:]
+            bot = tf.expand_dims((1 - tf.reduce_sum(self.w_t[:-1,:],axis = 0)),-1)
+            self.w_t = tf.concat([top,bot],axis = 0)
+            #horizontal
+            w_t = tf.transpose(self.w_t)
+
+            with tf.variable_scope('training'):
+                self.advantage = tf.placeholder(tf.float32,[None])
+                self.actions = tf.placeholder(tf.float32,[None,num_asset])
+                ele = (-1/2 * tf.matmul(tf.matmul((self.actions - w_t),Sigma_inv),tf.transpose((self.actions - w_t))))
 
 
-            # w_t = self.fl/tf.reduce_sum(tf.abs(self.fl_ut),axis = 1)
-            # self.w_t_ut = tf.transpose(w_t,perm = [1,0])
-
-    def add_layer(self,inputs,in_size,out_size, activation_function = None):
-        Weights = tf.Variable(tf.random.normal([in_size,out_size]),tf.float32)
-        Bias = tf.Variable(tf.zeros([1,out_size]),tf.float32)
-        Wx_plus_b = tf.matmul(inputs,Weights) + Bias
-        if activation_function == None:
-            output = Wx_plus_b
-        else:
-            output = activation_function(Wx_plus_b)
-
-        return output
-
-    def get_action(self,X,W):
-        return self.sess.run(self.w_t,feed_dict = {self.state_tensor:X,self.w_t:W})
-
-    # def trian_net(self,X,W):
+                surrogate_loss = -tf.reduce_mean(tf.diag_part(ele) * self.advantage)
+                self.train_op = optimizer.minimize(surrogate_loss)
 
 
+    def get_action_dist(self,X,w):
+        return self.sess.run(self.w_t,feed_dict = {self.state_tensor:X,self.w_t_prev:w})
+
+    def trian_net(self,X,w,advantage,actions):
+        self.sess.run(self.train_op, feed_dict = {self.state_tensor:X,self.w_t_prev:w,self.advantage:advantage,self.actions:actions})
 
 
 if __name__ == '__main__':
@@ -124,59 +126,42 @@ if __name__ == '__main__':
     tc = 0.02
     depth1 = 2
     depth2 = 1
+    sigma = [0.8] * num_asset
 
-    policy = Policy_Net(sess,feature_depth,num_asset,horizon,optimizer,tc,depth1,depth2)
+    policy = Policy_Net(sess,feature_depth,num_asset,horizon,optimizer,tc,depth1,depth2,sigma)
     sess.run(tf.global_variables_initializer())
 
     with open('/Users/william/Google Drive/STUDY/Columbia 2019 Spring/RL8100/Project/Finance/Portfolio_RL/Data/input_tensor.pkl','rb') as f:
         data = pkl.load(f)
 
     print(data.shape)
-    w = np.random.randn(1,10)
-    x = data[:,:,0:50:1] + 1e-10
+    w = np.zeros((1,10))
+    w[:,-1] = 1
+    print(w)
+    x = data[:,:,0:50:1]
     x = np.transpose(x, (1, 2, 0))[None,...]
 
 
-    # state_tensor = sess.run(policy.normalize_state_tensosr,feed_dict = {policy.state_tensor: x, policy.w_t:w})
-    # print('state_tensor',state_tensor.shape)
+    normalize_state_tensosr = sess.run(policy.normalize_state_tensosr,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+    print(normalize_state_tensosr)
     conv1 = sess.run(policy.conv1,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('conv1',conv1.shape)
+    print('conv1',conv1)
     conv2 = sess.run(policy.conv2,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('conv2',conv2.shape)
-    conv3 = sess.run(policy.conv3_input,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('conv3_input',conv3.shape)
-    conv3 = sess.run(policy.conv3,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('conv3',conv3.shape)
+    print('conv2',conv2)
     conv3_input = sess.run(policy.conv3_input,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('conv3_input',conv3_input.shape)
+    print('conv3_input',conv3_input)
+    conv3 = sess.run(policy.conv3,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+    print('conv3',conv3)
+    conv3_input = sess.run(policy.conv3_input,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+    print('conv3_input',conv3_input)
     fl = sess.run(policy.fl,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('fl',fl.shape)
+    print('fl',fl)
     w_t = sess.run(policy.w_t,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
     print('w_t',w_t.shape)
     print('w_t',w_t)
-    # w_t = sess.run(policy.w_t_ut,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
 
-    # print('w_t_ut',w_t)
+    actions = np.random.randn(20,10)
+    advantage = np.ones(20)
 
-    # conv1,conv2,w_t,_ = policy.test(x,w)
-    # print(conv1.shape)
-    # print(conv2.shape)
-    # print(w_t.shape)
-
-
-
-
-    
-
-
-    # def weights_variable(shape):
-    #     initial = tf.random.truncated_normal(shape,stddev = 0.001)
-
-    #     return tf.variable(initial)
-
-    # def bias_variable(shape):
-    #     initial = tf.random.truncated_nomr
-
-
-
-
+    # print('hello madafaka',sess.run(policy.ele, feed_dict = {policy.state_tensor:x,policy.w_t_prev:w,policy.advantage:advantage,policy.actions:actions}))
+    sess.run(policy.train_op, feed_dict = {policy.state_tensor:x,policy.w_t_prev:w,policy.advantage:advantage,policy.actions:actions})
