@@ -19,7 +19,7 @@ class Policy_Net():
         self.feature_depth = feature_depth
         self.optimizer = optimizer
         self.sess = sess
-        self.tc = tc
+        self.tc = trading_cost
         self.depth1 = depth1
         self.depth2 = depth2
         self.sigma = sigma
@@ -46,7 +46,6 @@ class Policy_Net():
                     bias_initializer=tf.zeros_initializer(),
                 )
             self.shape = tf.shape(self.conv1)
-            print(self.shape)
             with tf.variable_scope('conv2'):
                 self.conv2 = tf.layers.conv2d(
                     self.conv1,
@@ -102,66 +101,64 @@ class Policy_Net():
                 self.advantage = tf.placeholder(tf.float32,[None])
                 self.actions = tf.placeholder(tf.float32,[None,num_asset])
                 ele = (-1/2 * tf.matmul(tf.matmul((self.actions - w_t),Sigma_inv),tf.transpose((self.actions - w_t))))
-
-
                 surrogate_loss = -tf.reduce_mean(tf.diag_part(ele) * self.advantage)
                 self.train_op = optimizer.minimize(surrogate_loss)
 
 
-    def get_action_dist(self,X,w):
+    def get_mu(self,X,w):
         return self.sess.run(self.w_t,feed_dict = {self.state_tensor:X,self.w_t_prev:w})
 
     def trian_net(self,X,w,advantage,actions):
         self.sess.run(self.train_op, feed_dict = {self.state_tensor:X,self.w_t_prev:w,self.advantage:advantage,self.actions:actions})
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
     
-    sess = tf.Session()
-    feature_depth = 6
-    num_asset = 10
-    horizon = 50
-    optimizer = tf.train.AdamOptimizer(0.01)
-    tc = 0.02
-    depth1 = 2
-    depth2 = 1
-    sigma = [0.8] * num_asset
+#     sess = tf.Session()
+#     feature_depth = 6
+#     num_asset = 10
+#     horizon = 50
+#     optimizer = tf.train.AdamOptimizer(0.01)
+#     tc = 0.02
+#     depth1 = 2
+#     depth2 = 1
+#     sigma = [0.8] * num_asset
 
-    policy = Policy_Net(sess,feature_depth,num_asset,horizon,optimizer,tc,depth1,depth2,sigma)
-    sess.run(tf.global_variables_initializer())
+#     policy = Policy_Net(sess,feature_depth,num_asset,horizon,optimizer,tc,depth1,depth2,sigma)
+#     sess.run(tf.global_variables_initializer())
 
-    with open('/Users/william/Google Drive/STUDY/Columbia 2019 Spring/RL8100/Project/Finance/Portfolio_RL/Data/input_tensor.pkl','rb') as f:
-        data = pkl.load(f)
+#     with open('/Users/william/Google Drive/STUDY/Columbia 2019 Spring/RL8100/Project/Finance/Portfolio_RL/Data/input_tensor.pkl','rb') as f:
+#         data = pkl.load(f)
 
-    print(data.shape)
-    w = np.zeros((1,10))
-    w[:,-1] = 1
-    print(w)
-    x = data[:,:,0:50:1]
-    x = np.transpose(x, (1, 2, 0))[None,...]
+#     print(data.shape)
+#     w = np.zeros((1,10))
+#     w[:,-1] = 1
+#     print(w)
+#     x = data[:,:,0:50:1]
+#     x = np.transpose(x, (1, 2, 0))[None,...]
 
 
-    normalize_state_tensosr = sess.run(policy.normalize_state_tensosr,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print(normalize_state_tensosr)
-    conv1 = sess.run(policy.conv1,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('conv1',conv1)
-    conv2 = sess.run(policy.conv2,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('conv2',conv2)
-    conv3_input = sess.run(policy.conv3_input,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('conv3_input',conv3_input)
-    conv3 = sess.run(policy.conv3,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('conv3',conv3)
-    conv3_input = sess.run(policy.conv3_input,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('conv3_input',conv3_input)
-    fl = sess.run(policy.fl,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('fl',fl)
-    w_t = sess.run(policy.w_t,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-    print('w_t',w_t.shape)
-    print('w_t',w_t)
+#     normalize_state_tensosr = sess.run(policy.normalize_state_tensosr,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+#     print(normalize_state_tensosr)
+#     conv1 = sess.run(policy.conv1,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+#     print('conv1',conv1)
+#     conv2 = sess.run(policy.conv2,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+#     print('conv2',conv2)
+#     conv3_input = sess.run(policy.conv3_input,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+#     print('conv3_input',conv3_input)
+#     conv3 = sess.run(policy.conv3,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+#     print('conv3',conv3)
+#     conv3_input = sess.run(policy.conv3_input,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+#     print('conv3_input',conv3_input)
+#     fl = sess.run(policy.fl,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+#     print('fl',fl)
+#     w_t = sess.run(policy.w_t,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+#     print('w_t',w_t.shape)
+#     print('w_t',w_t)
 
-    actions = np.random.randn(20,10)
-    advantage = np.ones(20)
+#     actions = np.random.randn(20,10)
+#     advantage = np.ones(20)
 
-    # print('hello madafaka',sess.run(policy.ele, feed_dict = {policy.state_tensor:x,policy.w_t_prev:w,policy.advantage:advantage,policy.actions:actions}))
-    sess.run(policy.train_op, feed_dict = {policy.state_tensor:x,policy.w_t_prev:w,policy.advantage:advantage,policy.actions:actions})
+#     # print('hello madafaka',sess.run(policy.ele, feed_dict = {policy.state_tensor:x,policy.w_t_prev:w,policy.advantage:advantage,policy.actions:actions}))
+#     sess.run(policy.train_op, feed_dict = {policy.state_tensor:x,policy.w_t_prev:w,policy.advantage:advantage,policy.actions:actions})

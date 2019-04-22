@@ -1,11 +1,12 @@
 from Policy_Net import Policy_Net
 from Value_Net import Value_Net
-from utils import add_arguments
+from utils import add_arguments,discounted_rewards
 import tensorflow as tf 
 import numpy as np
 import pickle as pkl
 import argparse
 import os
+from Env import Env
 
 
 parser = argparse.ArgumentParser()
@@ -16,10 +17,13 @@ args = parser.parse_args()
 if not os.path.exists("Params"):
     os.mkdir("Params")
     
-
 with open("./Params/args.pickle","wb") as f:
     pkl.dump(args,f)
 
+
+
+
+#network parameter
 sess = tf.Session()
 feature_depth = args.num_signal_feature
 num_asset = args.num_asset
@@ -28,69 +32,96 @@ policy_lr = args.learning_rate_policy_net
 value_lr = args.learning_rate_value_net
 gamma = args.discount_rate
 tc = args.transcation_cost
-optimizer_policy = tf.train.AdamOptimizer(policy_lr)
-optimizer_value = tf.train.AdamOptimizer(policy_lr)
+Simga = args.sigma
+sigma_decay = args.variance_decay
+numtrajs = args.num_traj
+iteration = args.iteration
 depth1 = 2
 depth2 = 1
+max_train = args.max_train
+training_period = args.max_train
+cs = args.cs  
+cp = args.cp
 
 
+# initialize environment
+env = Env(training_period,horizon,cs,cp)
+# obssize = env.observation_space.low.size
+actsize = env.action_space
 
-policy = Policy_Net(sess,feature_depth,num_asset,horizon,optimizer,tc,depth1,depth2)
+# sess
+sess = tf.Session()
 
-value = Value_Net(sess,optimizer,feature_depth,num_asset,horizon,depth1 = 6)
+# initialize networks
+optimizer_policy = tf.train.AdamOptimizer(policy_lr)
+optimizer_value = tf.train.AdamOptimizer(policy_lr)
+sigma = [0.8] * num_asset
 
+Sigma = np.diag(sigma)
 
+policy = Policy_Net(sess,feature_depth,num_asset,horizon,optimizer_policy,tc,depth1,depth2,sigma)
+value = Value_Net(sess,optimizer_value,feature_depth,num_asset,horizon,depth1 = 6)
+
+# initialize tensorflow graphs
 sess.run(tf.global_variables_initializer())
 
-# with open('/Users/william/Google Drive/STUDY/Columbia 2019 Spring/RL8100/Project/Finance/Portfolio_RL/Data/input_tensor.pkl','rb') as f:
-#     data = pkl.load(f)
+# main iteration
+for ite in range(1):    
+# for ite in range(1):    
 
-# print(data.shape)
-# w = np.random.randn(1,10)
-# x = data[:,:,0:50:1] + 1e-10
-# x = np.transpose(x, (1, 2, 0))[None,...]
+    # trajs records for batch update
+    OBS = []  # observations
+    ACTS = []  # actions
+    ADS = []  # advantages (to update policy)
+    VAL = []  # value functions (to update baseline)
 
+    for num in range(numtrajs):
+    # for num in range():
 
-# # state_tensor = sess.run(policy.normalize_state_tensosr,feed_dict = {policy.state_tensor: x, policy.w_t:w})
-# # print('state_tensor',state_tensor.shape)
-# conv1 = sess.run(policy.conv1,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-# print('conv1',conv1.shape)
-# conv2 = sess.run(policy.conv2,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-# print('conv2',conv2.shape)
-# conv3 = sess.run(policy.conv3_input,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-# print('conv3_input',conv3.shape)
-# conv3 = sess.run(policy.conv3,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-# print('conv3',conv3.shape)
-# conv3_input = sess.run(policy.conv3_input,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-# print('conv3_input',conv3_input.shape)
-# fl = sess.run(policy.fl,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-# print('fl',fl.shape)
-# w_t = sess.run(policy.w_t,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
-# print('w_t',w_t.shape)
-# print('w_t',w_t)
-# # w_t = sess.run(policy.w_t_ut,feed_dict = {policy.state_tensor: x, policy.w_t_prev:w})
+        # record for each episode
+        obss = []  # observations
+        acts = []   # actions
+        rews = []  # instant rewards
 
-# # print('w_t_ut',w_t)
+        obs = env.reset()
+        w = []
+        w.append(np.zeros((1,10)))
+        w[0][:,-1] = 1
+        for i in range(10):
+            mu = policy.get_mu(obs,w[i]).flatten()
+            action = np.random.multivariate_normal(mu,Sigma)
 
-# # conv1,conv2,w_t,_ = policy.test(x,w)
-# # print(conv1.shape)
-# # print(conv2.shape)
-# # print(w_t.shape)
+            # action = np.random.choice(actsize, p=prob.flatten(), size=1)
+            newobs, reward = env.step(action,w[i])
+            w.append(action[None,...])
 
+            # record
+            obss.append(obs)
+            acts.append(action[0])
+            rews.append(reward)
 
+            # update
+            obs = newobs
+       
+        # compute returns from instant rewards
+        returns = discounted_rewards(rews, gamma)
 
+        # record for batch update
+        VAL += returns
+        OBS += obss
+        ACTS += acts
+    
+    # update baseline
+    VAL = np.array(VAL)
+    OBS = np.array(OBS)
+    ACTS = np.array(ACTS)
+    
+    OBS = OBS[:,0,:]
+    value.train(OBS, VAL)  # update only one step
+    
+    # update policy
+    BAS = baseline.compute_values(OBS)  # compute baseline for variance reduction
+    ADS = VAL - np.squeeze(BAS,1)
 
-
-
-
-# # def weights_variable(shape):
-# #     initial = tf.random.truncated_normal(shape,stddev = 0.001)
-
-# #     return tf.variable(initial)
-
-# # def bias_variable(shape):
-# #     initial = tf.random.truncated_nomr
-
-
-
+    actor.train(OBS, ACTS, ADS)  # update only one step
 

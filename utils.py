@@ -44,6 +44,11 @@ def add_arguments(parser):
     parser.add_argument("--variance_decay",type = float,default = 5e-3,help = "decay rate")
     parser.add_argument("--transcation_cost", type = float, default =25e-3)
     parser.add_argument("--discount_rate", type = float, default = 1, help = 'dicounted rate for reward')
+    parser.add_argument("--num_traj",type = int,default = 30, help = "number of trajectory")
+    parser.add_argument("--iteration",type = int,default = 1000, help = "number of iteration")
+    parser.add_argument("--max_train",type = int, default = 12000,help = "maximum training per trajectory")
     parser.add_argument("--with_model", action="store_true", help="Continue from previously saved model")
 
-
+    parser.add_argument("--cs",type = float, default = 2e-3, help="cost of sell")
+    parser.add_argument("--cp",type = float, default = 2e-3, help="cost of purchase")
+    

@@ -2,6 +2,7 @@
 import pickle as pkl
 import numpy as np
 from utils import add_FC_layer
+import tensorflow as tf
 
 
 class Value_Net():
@@ -9,7 +10,7 @@ class Value_Net():
     Compute the Value of each state
     '''
 
-    def __init__(self,sess,optimizer,feature_depth,num_asset,horizonq,depth1):
+    def __init__(self,sess,optimizer,feature_depth,num_asset,horizon,depth1):
         self.sess = sess
         self.optimizer = optimizer
         self.num_asset = num_asset
@@ -49,8 +50,8 @@ class Value_Net():
                 self.fl = add_FC_layer(self.FC_input,num_asset,1)
 
 
-            target = tf.placeholder(tf.float32,[None])
-            state_loss = tf.reduce_mean(tf.square(self.fl - target))
+            self.target = tf.placeholder(tf.float32,[None])
+            state_loss = tf.reduce_mean(tf.square(self.fl - self.target))
             self.train_op = optimizer.minimize(state_loss)
 
 
@@ -67,39 +68,39 @@ class Value_Net():
 
 
 
-if __name__ == '__main__':
-    sess = tf.Session()
-    num_asset = 10
-    feature_depth = 6
-    horizon = 50
-    optimizer = tf.train.AdamOptimizer(0.01)
-    tc = 0.02
-    depth1 = 2
-    depth2 = 1
+# if __name__ == '__main__':
+#     sess = tf.Session()
+#     num_asset = 10
+#     feature_depth = 6
+#     horizon = 50
+#     optimizer = tf.train.AdamOptimizer(0.01)
+#     tc = 0.02
+#     depth1 = 2
+#     depth2 = 1
 
-    value = Value_Net(sess,optimizer,feature_depth,num_asset,horizon,depth1 = 6)
-    sess.run(tf.global_variables_initializer())
+#     value = Value_Net(sess,optimizer,feature_depth,num_asset,horizon,depth1 = 6)
+#     sess.run(tf.global_variables_initializer())
 
-    with open('/Users/william/Google Drive/STUDY/Columbia 2019 Spring/RL8100/Project/Finance/Portfolio_RL/Data/input_tensor.pkl','rb') as f:
-        data = pkl.load(f)
+#     with open('/Users/william/Google Drive/STUDY/Columbia 2019 Spring/RL8100/Project/Finance/Portfolio_RL/Data/input_tensor.pkl','rb') as f:
+#         data = pkl.load(f)
 
-    x = data[:,:,0:50:1] + 1e-10
-    x = np.transpose(x,(1,2,0))[None,...]
+#     x = data[:,:,0:50:1] + 1e-10
+#     x = np.transpose(x,(1,2,0))[None,...]
 
-    state = sess.run(value.state,feed_dict = {value.state:x})
-    print(state.shape)
+#     state = sess.run(value.state,feed_dict = {value.state:x})
+#     print(state.shape)
 
-    conv1 = sess.run(value.conv1,feed_dict = {value.state:x})
-    print(conv1.shape)
+#     conv1 = sess.run(value.conv1,feed_dict = {value.state:x})
+#     print(conv1.shape)
 
-    conv2 = sess.run(value.conv2,feed_dict = {value.state:x})
-    print(conv2.shape)
+#     conv2 = sess.run(value.conv2,feed_dict = {value.state:x})
+#     print(conv2.shape)
 
-    FC_input = sess.run(value.FC_input,feed_dict = {value.state:x})
-    print(FC_input.shape)
+#     FC_input = sess.run(value.FC_input,feed_dict = {value.state:x})
+#     print(FC_input.shape)
 
-    fl = sess.run(value.fl,feed_dict = {value.state:x})
+#     fl = sess.run(value.fl,feed_dict = {value.state:x})
 
-    print(value.get_state_value(x))
+#     print(value.get_state_value(x))
 
 
