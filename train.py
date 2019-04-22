@@ -7,7 +7,9 @@ import pickle as pkl
 import argparse
 import os
 from Env import Env
+import os
 
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 parser = argparse.ArgumentParser()
 add_arguments(parser)
@@ -66,38 +68,41 @@ value = Value_Net(sess,optimizer_value,feature_depth,num_asset,horizon,depth1 = 
 sess.run(tf.global_variables_initializer())
 
 # main iteration
-for ite in range(1):    
-# for ite in range(1):    
+for ite in range(iteration):    
 
     # trajs records for batch update
+    Prev_Acts = []
     OBS = []  # observations
     ACTS = []  # actions
     ADS = []  # advantages (to update policy)
     VAL = []  # value functions (to update baseline)
 
     for num in range(numtrajs):
-    # for num in range():
+    # for num in range(10):
 
         # record for each episode
         obss = []  # observations
         acts = []   # actions
+        prev_acts = []
         rews = []  # instant rewards
 
+        prev_acts.append(np.zeros((1,10)))
+        prev_acts[0][:,-1] = 1
+
         obs = env.reset()
-        w = []
-        w.append(np.zeros((1,10)))
-        w[0][:,-1] = 1
+
         for i in range(10):
-            mu = policy.get_mu(obs,w[i]).flatten()
+            mu = policy.get_mu(obs,prev_acts[i]).flatten()
             action = np.random.multivariate_normal(mu,Sigma)
 
             # action = np.random.choice(actsize, p=prob.flatten(), size=1)
-            newobs, reward = env.step(action,w[i])
-            w.append(action[None,...])
+            newobs, reward = env.step(action,prev_acts[i])
 
             # record
+            if i != 9:
+                prev_acts.append(action[None,...])
             obss.append(obs)
-            acts.append(action[0])
+            acts.append(action[None,...])
             rews.append(reward)
 
             # update
@@ -107,21 +112,30 @@ for ite in range(1):
         returns = discounted_rewards(rews, gamma)
 
         # record for batch update
+        Prev_Acts += prev_acts
         VAL += returns
         OBS += obss
         ACTS += acts
     
     # update baseline
+    Prev_Acts = np.array(Prev_Acts)
     VAL = np.array(VAL)
     OBS = np.array(OBS)
     ACTS = np.array(ACTS)
     
     OBS = OBS[:,0,:]
+    ACTS = ACTS[:,0,:]
+    Prev_Acts = Prev_Acts[:,0,:]
+    print('Prev_Acts',Prev_Acts.shape)
+    print('OBS',OBS.shape)
+    print('Acts',ACTS.shape)
+
+
     value.train(OBS, VAL)  # update only one step
     
     # update policy
-    BAS = baseline.compute_values(OBS)  # compute baseline for variance reduction
+    BAS = value.get_state_value(OBS)  # compute baseline for variance reduction
     ADS = VAL - np.squeeze(BAS,1)
 
-    actor.train(OBS, ACTS, ADS)  # update only one step
+    policy.train_net(OBS,Prev_Acts,ADS,ACTS)  # update only one step
 
