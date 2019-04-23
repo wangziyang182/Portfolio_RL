@@ -110,4 +110,4 @@ for i in range(test_end-test_start):
     total_rews.extend(rews)
 
 total_reward = np.prod(rews)
-print(total_reward)
+print(total_reward,rews)

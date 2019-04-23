@@ -101,15 +101,16 @@ class Policy_Net():
                 self.advantage = tf.placeholder(tf.float32,[None])
                 self.actions = tf.placeholder(tf.float32,[None,num_asset])
                 ele = (-1/2 * tf.matmul(tf.matmul((self.actions - w_t),Sigma_inv),tf.transpose((self.actions - w_t))))
-                surrogate_loss = -tf.reduce_mean(tf.diag_part(ele) * self.advantage)
-                self.train_op = optimizer.minimize(surrogate_loss)
+                self.surrogate_loss = -tf.reduce_mean(tf.diag_part(ele) * self.advantage)
+                self.train_op = optimizer.minimize(self.surrogate_loss)
 
 
     def get_mu(self,X,w):
         return self.sess.run(self.w_t,feed_dict = {self.state_tensor:X,self.w_t_prev:w})
 
     def train_net(self,X,w,advantage,actions):
-        self.sess.run(self.train_op, feed_dict = {self.state_tensor:X,self.w_t_prev:w,self.advantage:advantage,self.actions:actions})
+        _,loss = self.sess.run([self.train_op,self.surrogate_loss], feed_dict = {self.state_tensor:X,self.w_t_prev:w,self.advantage:advantage,self.actions:actions})
+        print('policy loss',loss)
 
 
 if __name__ == '__main__':
