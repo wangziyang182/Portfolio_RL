@@ -35,7 +35,9 @@ policy_lr = args.learning_rate_policy_net
 value_lr = args.learning_rate_value_net
 gamma = args.discount_rate
 tc = args.transcation_cost
+
 Simga = args.sigma
+Sigma = 1e-5*np.identity(10)
 sigma_decay = args.variance_decay
 numtrajs = args.num_traj
 iteration = args.iteration
@@ -43,8 +45,8 @@ depth1 = 2
 depth2 = 1
 max_train = args.max_train
 training_period = args.max_train
-cs = args.cs/1000
-cp = args.cp/1000
+cs = args.cs
+cp = args.cp
 print(cs,cp)
 # initialize environment
 env = Env(training_period,horizon,cs,cp)
@@ -68,7 +70,7 @@ value = Value_Net(sess,optimizer_value,feature_depth,num_asset,horizon,depth1 = 
 sess.run(tf.global_variables_initializer())
 print(iteration,numtrajs)
 # main iteration
-iteration = 1000
+iteration = 10
 for ite in range(iteration):
     if ite%100==0:
         print(ite)
@@ -93,10 +95,12 @@ for ite in range(iteration):
         prev_acts[0][:,-1] = 1
 
         obs = env.reset()
-        
+
         for i in range(100):
             mu = policy.get_mu(obs,prev_acts[i]).flatten()
+            mu = mu/10
             action = np.random.multivariate_normal(mu,Sigma)
+            action[-1] = 1-sum(action[:-1])
 
             # action = np.random.choice(actsize, p=prob.flatten(), size=1)
             newobs, reward = env.step(action,prev_acts[i])
@@ -220,7 +224,7 @@ obs = env.test_reset(test_start)
 for i in range(test_end-test_start):
     mu = policy.get_mu(obs, prev_acts[i]).flatten()
     action =mu
-    # print(mu)
+    print(mu)
     newobs, reward = env.step(action, prev_acts[i])
     if i != test_end-test_start-1:
         prev_acts.append(action[None, ...])
