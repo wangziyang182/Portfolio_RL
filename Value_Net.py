@@ -51,8 +51,8 @@ class Value_Net():
 
 
             self.target = tf.placeholder(tf.float32,[None])
-            state_loss = tf.reduce_mean(tf.square(self.fl - self.target))
-            self.train_op = optimizer.minimize(state_loss)
+            self.state_loss = tf.reduce_mean(tf.square(self.fl - self.target))
+            self.train_op = optimizer.minimize(self.state_loss)
 
 
 
@@ -61,7 +61,8 @@ class Value_Net():
 
 
     def train(self,state,target):
-        self.sess.run(self.train_op, feed_dict = {self.state:state,self.target:target})
+        _,loss = self.sess.run([self.train_op,self.state_loss], feed_dict = {self.state:state,self.target:target})
+        print('state loss',loss)
 
 
 

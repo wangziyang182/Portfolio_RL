@@ -6,7 +6,7 @@ import pickle as pkl
 class Env():
 
     def __init__(self,training_period,horizon,cs,cp):
-        with open('/Users/william/Google Drive/STUDY/Columbia 2019 Spring/RL8100/Project/Finance/Portfolio_RL/Data/input_tensor.pkl','rb') as f:
+        with open('./Data/input_tensor.pkl','rb') as f:
             #4 dimensional tensor
             #[batch,]
             data = pkl.load(f)
@@ -20,7 +20,9 @@ class Env():
         self.cs =cs 
         self.cp = cp
 
-
+    def test_reset(self,test_start):
+        # self.test_start = 12000
+        return self.full_state[:,:,test_start:test_start+self.horizon,:]
     def reset(self):
         self.start = np.random.randint(0,self.full_horizon - 12000)
         return self.full_state[:,:,self.start:self.start+self.horizon,:]
@@ -49,6 +51,38 @@ class Env():
         
         return self.full_state[:,:,self.start:self.start+self.horizon,:],r
 
+    # def get_mu(self,vt, vt_1, wt_1, wt):
+    #     """
+    #     cs = 0.01
+    #     cp = 0.03
+    #     vt =  np.array([10,20,30])
+    #     vt_1 = np.array([9,18,32])
+    #     wt_1 = np.array([0.4,0.4,0.2])
+    #     wt = np.array([0.2,0.2,0.4])
+    #     """
+    #
+    #     cs = self.cs
+    #     cp = self.cp
+    #     yt = vt_1/vt
+    #     yt[0] = 1
+    #     wt_1 = wt_1.flatten()
+    #     wt = wt.flatten()
+    #     wt_prime = (yt*wt_1)/(yt@wt_1)
+    #     mu = 0.8
+    #     right = 1/(1-cp*wt[0])*(1-cp*wt_prime[0]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[1:],0,(wt_prime-mu*wt)[1:])))
+    #     while(abs(mu-right)>0.001):
+    #         mu = right
+    #         right = 1/(1-cp*wt[0])*(1-cp*wt_prime[0]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[1:],0,(wt_prime-mu*wt)[1:])))
+    #     return mu
+
+
+    def get_reward(self,vt,vt_1,mu,wt_1):
+        wt_1 = wt_1.flatten()
+        yt = vt_1/vt
+        yt[0] = 1
+        r = mu*yt@wt_1
+        return r
+
     def get_mu(self,vt, vt_1, wt_1, wt):
         """
         cs = 0.01
@@ -67,17 +101,8 @@ class Env():
         wt = wt.flatten()
         wt_prime = (yt*wt_1)/(yt@wt_1)
         mu = 0.8
-        right = 1/(1-cp*wt[0])*(1-cp*wt_prime[0]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[1:],0,(wt_prime-mu*wt)[1:])))
+        right = 1/(1-cp*wt[-1])*(1-cp*wt_prime[-1]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[:-1],0,(wt_prime-mu*wt)[:-1])))
         while(abs(mu-right)>0.001):
             mu = right
-            right = 1/(1-cp*wt[0])*(1-cp*wt_prime[0]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[1:],0,(wt_prime-mu*wt)[1:])))
+            right = 1/(1-cp*wt[-1])*(1-cp*wt_prime[-1]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[:-1],0,(wt_prime-mu*wt)[:-1])))
         return mu
-
-
-    def get_reward(self,vt,vt_1,mu,wt_1):
-        wt_1 = wt_1.flatten()
-        yt = vt_1/vt
-        yt[0] = 1
-        r = mu*yt@wt_1
-        return r
-
