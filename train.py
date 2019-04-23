@@ -118,7 +118,7 @@ for ite in range(iteration):
 
     # update baseline
     Prev_Acts = np.array(Prev_Acts)
-    print(Prev_Acts)
+    # print(Prev_Acts)
     VAL = np.array(VAL)
     OBS = np.array(OBS)
     ACTS = np.array(ACTS)
@@ -126,9 +126,9 @@ for ite in range(iteration):
     OBS = OBS[:,0,:]
     ACTS = ACTS[:,0,:]
     Prev_Acts = Prev_Acts[:,0,:]
-    print('Prev_Acts',Prev_Acts.shape)
-    print('OBS',OBS.shape)
-    print('Acts',ACTS.shape)
+    # print('Prev_Acts',Prev_Acts.shape)
+    # print('OBS',OBS.shape)
+    # print('Acts',ACTS.shape)
 
 
     value.train(OBS, VAL)  # update only one step
