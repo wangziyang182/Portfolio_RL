@@ -45,7 +45,6 @@ training_period = args.max_train
 cs = args.cs  
 cp = args.cp
 
-
 # initialize environment
 env = Env(training_period,horizon,cs,cp)
 # obssize = env.observation_space.low.size
@@ -107,7 +106,6 @@ for ite in range(iteration):
 
             # update
             obs = newobs
-       
         # compute returns from instant rewards
         returns = discounted_rewards(rews, gamma)
 
@@ -116,9 +114,11 @@ for ite in range(iteration):
         VAL += returns
         OBS += obss
         ACTS += acts
-    
+    # print(reward)
+
     # update baseline
     Prev_Acts = np.array(Prev_Acts)
+    print(Prev_Acts)
     VAL = np.array(VAL)
     OBS = np.array(OBS)
     ACTS = np.array(ACTS)

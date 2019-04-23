@@ -6,7 +6,7 @@ import pickle as pkl
 class Env():
 
     def __init__(self,training_period,horizon,cs,cp):
-        with open('/Users/william/Google Drive/STUDY/Columbia 2019 Spring/RL8100/Project/Finance/Portfolio_RL/Data/input_tensor.pkl','rb') as f:
+        with open('./Data/input_tensor.pkl','rb') as f:
             #4 dimensional tensor
             #[batch,]
             data = pkl.load(f)
@@ -20,7 +20,9 @@ class Env():
         self.cs =cs 
         self.cp = cp
 
-
+    def test_reset(self,test_start):
+        # self.test_start = 12000
+        return self.full_state[:,:,test_start:test_start+self.horizon,:]
     def reset(self):
         self.start = np.random.randint(0,self.full_horizon - 12000)
         return self.full_state[:,:,self.start:self.start+self.horizon,:]

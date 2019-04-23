@@ -128,13 +128,13 @@ if __name__ == '__main__':
     policy = Policy_Net(sess,feature_depth,num_asset,horizon,optimizer,tc,depth1,depth2,sigma)
     sess.run(tf.global_variables_initializer())
 
-    with open('/Users/william/Google Drive/STUDY/Columbia 2019 Spring/RL8100/Project/Finance/Portfolio_RL/Data/input_tensor.pkl','rb') as f:
+    with open('./Data/input_tensor.pkl','rb') as f:
         data = pkl.load(f)
 
-    print(data.shape)
+    # print(data.shape)
     w = np.zeros((2,10))
     w[:,-1] = 1
-    print(w)
+    # print(w)
     x = data[:,:,0:50:1]
     x = np.transpose(x, (1, 2, 0))[None,...]
 
