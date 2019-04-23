@@ -45,7 +45,7 @@ max_train = args.max_train
 training_period = args.max_train
 cs = args.cs  
 cp = args.cp
-
+print(cs,cp)
 # initialize environment
 env = Env(training_period,horizon,cs,cp)
 # obssize = env.observation_space.low.size
@@ -68,7 +68,7 @@ value = Value_Net(sess,optimizer_value,feature_depth,num_asset,horizon,depth1 = 
 sess.run(tf.global_variables_initializer())
 print(iteration,numtrajs)
 # main iteration
-iteration = 1000
+iteration = 10
 for ite in range(iteration):
     if ite%100==0:
         print(ite)
@@ -220,7 +220,7 @@ obs = env.test_reset(test_start)
 for i in range(test_end-test_start):
     mu = policy.get_mu(obs, prev_acts[i]).flatten()
     action =mu
-
+    # print(mu)
     newobs, reward = env.step(action, prev_acts[i])
     if i != test_end-test_start-1:
         prev_acts.append(action[None, ...])
@@ -239,4 +239,5 @@ plt.plot(plot_x_range,step_reward)
 plt.show()
 
 total_reward = np.prod(rews)
+print(rews)
 print(total_reward)
