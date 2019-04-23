@@ -8,7 +8,7 @@ import argparse
 import os
 from Env import Env
 import os
-print(os.getcwd())
+import time
 # import matplotlib.pyplot as plt
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -143,11 +143,6 @@ for ite in range(iteration):
     BAS = value.get_state_value(OBS)  # compute baseline for variance reduction
     ADS = VAL - np.squeeze(BAS,1)
 
-    print(OBS.shape)
-    print(Prev_Acts.shape)
-    print(ADS.shape)
-    print(ACTS.shape)
-
     policy.train_net(OBS,Prev_Acts,ADS,ACTS)  # update only one step
 policy.save()
 value.save()
@@ -243,6 +238,9 @@ if not os.path.exists("Testing_Reward"):
     os.mkdir("Testing_Reward")
 
 np.save('./Testing_Reward/test_results', rews)
+def sharpe(p):
+    w = [np.prod(p[:i+1]) for i in range(len(p))]
+    return np.mean(w)/np.std(w)
 print(rews)
 print(total_reward)
-
+print('sharpe ratio is ',sharpe(rews))
