@@ -30,7 +30,9 @@ policy_lr = args.learning_rate_policy_net
 value_lr = args.learning_rate_value_net
 gamma = args.discount_rate
 tc = args.transcation_cost
+
 Simga = args.sigma
+Sigma = np.identity(10)*0.01
 sigma_decay = args.variance_decay
 numtrajs = args.num_traj
 iteration = args.iteration
@@ -38,8 +40,10 @@ depth1 = 2
 depth2 = 1
 max_train = args.max_train
 training_period = args.max_train
-cs = args.cs
-cp = args.cp
+cs = 1e-3
+# args.cs
+cp = 1e-3
+    # args.cp
 
 # initialize environment
 env = Env(training_period, horizon, cs, cp)
@@ -64,8 +68,7 @@ sess.run(tf.global_variables_initializer())
 
 # main iteration
 test_start = 12000
-test_end = 13000
-periods = (test_end-test_start)//50
+test_end = 12010
 total_rews = []
 
     # trajs records for batch update
@@ -94,8 +97,10 @@ obs = env.test_reset(test_start)
         # print('ddddd',prev_acts)
 for i in range(test_end-test_start):
     mu = policy.get_mu(obs, prev_acts[i]).flatten()
-    action =mu
 
+    mu = mu / 10
+    mu[-1] = 1 - sum(mu[:-1])
+    action = mu
     newobs, reward = env.step(action, prev_acts[i])
     if i != test_end-test_start-1:
         prev_acts.append(action[None, ...])

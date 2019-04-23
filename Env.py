@@ -45,6 +45,7 @@ class Env():
         wt_1 = action_prev
 
         mu = self.get_mu(vt, vt_1, wt_1, wt)
+        # print(mu)
         r = self.get_reward(vt, vt_1,mu,wt_1)
 
         self.start += 1
@@ -96,13 +97,24 @@ class Env():
         cs = self.cs
         cp = self.cp
         yt = vt_1/vt
-        yt[0] = 1
+        yt[-1] = 1
         wt_1 = wt_1.flatten()
         wt = wt.flatten()
         wt_prime = (yt*wt_1)/(yt@wt_1)
         mu = 0.8
-        right = 1/(1-cp*wt[-1])*(1-cp*wt_prime[-1]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[:-1],0,(wt_prime-mu*wt)[:-1])))
-        while(abs(mu-right)>0.001):
+        right = 1/(1-cp*wt[-1])*(1-cp*wt_prime[-1]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[:-1].copy(),0,(wt_prime-mu*wt)[:-1].copy())))
+        while(abs(mu-right)>0.0001):
             mu = right
-            right = 1/(1-cp*wt[-1])*(1-cp*wt_prime[-1]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[:-1],0,(wt_prime-mu*wt)[:-1])))
+            right =1/(1-cp*wt[-1])*(1-cp*wt_prime[-1]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[:-1].copy(),0,(wt_prime-mu*wt)[:-1].copy())))
+        # if mu<0:
+        #
+        print('\n')
+        print('yt',yt)
+        print('wt_1', wt_1,sum(wt_1))
+        print('wt', wt,sum(wt))
+        #     print('wt_prime',wt_prime)
+        #     print('nominator',(yt*wt_1))
+        #     print('denominator',(yt@wt_1))
+        #     print()
+        assert  mu>0,'mu has to be larger than 0, otherwise it means we have to much risk'
         return mu
