@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import pickle as pkl
 from utils import add_FC_layer, get_normal
+import os
 
 
 #haven't add cash bias into it yet
@@ -104,6 +105,7 @@ class Policy_Net():
                 self.surrogate_loss = -tf.reduce_mean(tf.diag_part(ele) * self.advantage)
                 self.train_op = optimizer.minimize(self.surrogate_loss)
 
+            self.saver = tf.train.Saver()
 
     def get_mu(self,X,w):
         return self.sess.run(self.w_t,feed_dict = {self.state_tensor:X,self.w_t_prev:w})
@@ -111,6 +113,11 @@ class Policy_Net():
     def train_net(self,X,w,advantage,actions):
         _,loss = self.sess.run([self.train_op,self.surrogate_loss], feed_dict = {self.state_tensor:X,self.w_t_prev:w,self.advantage:advantage,self.actions:actions})
         print('policy loss',loss)
+
+    def save(self):
+        if not os.path.exists("Model_Params"):
+            os.mkdir("Model_Params")
+        self.saver.save(self.sess,"./Model_Params/policy_net.cpkt")
 
 
 if __name__ == '__main__':

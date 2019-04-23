@@ -3,7 +3,6 @@ utility file provide helper function
 '''
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 
 
 def discounted_rewards(r, gamma):
@@ -40,13 +39,13 @@ def add_arguments(parser):
     parser.add_argument("--num_signal_feature",type=int, default = 6, help = "number of signal axiuliary feature")
     parser.add_argument("--learning_rate_policy_net", type=float, default=1e-3, help="Learning rate.")
     parser.add_argument("--learning_rate_value_net", type=float, default=1e-3, help="Learning rate.")
-    parser.add_argument("--sigma",type = float, default = 0.8,help = "sigma")
+    parser.add_argument("--sigma",type = float, default = 0.3,help = "sigma")
     parser.add_argument("--variance_decay",type = float,default = 5e-3,help = "decay rate")
     parser.add_argument("--transcation_cost", type = float, default =25e-3)
     parser.add_argument("--discount_rate", type = float, default = 1, help = 'dicounted rate for reward')
     parser.add_argument("--num_traj",type = int,default = 30, help = "number of trajectory")
     parser.add_argument("--iteration",type = int,default = 1000, help = "number of iteration")
-    parser.add_argument("--max_train",type = int, default = 12000,help = "maximum training per trajectory")
+    parser.add_argument("--max_train",type = int, default = 120,help = "maximum training per trajectory")
     parser.add_argument("--with_model", action="store_true", help="Continue from previously saved model")
 
     parser.add_argument("--cs",type = float, default = 2e-3, help="cost of sell")

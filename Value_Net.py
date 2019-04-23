@@ -3,6 +3,7 @@ import pickle as pkl
 import numpy as np
 from utils import add_FC_layer
 import tensorflow as tf
+import os
 
 
 class Value_Net():
@@ -54,6 +55,7 @@ class Value_Net():
             self.state_loss = tf.reduce_mean(tf.square(self.fl - self.target))
             self.train_op = optimizer.minimize(self.state_loss)
 
+            self.saver = tf.train.Saver()
 
 
     def get_state_value(self,state):
@@ -63,6 +65,13 @@ class Value_Net():
     def train(self,state,target):
         _,loss = self.sess.run([self.train_op,self.state_loss], feed_dict = {self.state:state,self.target:target})
         print('state loss',loss)
+
+    def save(self):
+        if not os.path.exists("Model_Params"):
+            os.mkdir("Model_Params")
+        self.saver.save(self.sess,"./Model_Params/value_net.cpkt")
+
+    
 
 
 

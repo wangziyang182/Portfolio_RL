@@ -8,7 +8,8 @@ import argparse
 import os
 from Env import Env
 import os
-import matplotlib.pyplot as plt
+print(os.getcwd())
+# import matplotlib.pyplot as plt
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
@@ -37,7 +38,6 @@ gamma = args.discount_rate
 tc = args.transcation_cost
 
 Simga = args.sigma
-Sigma = 1e-5*np.identity(10)
 sigma_decay = args.variance_decay
 numtrajs = args.num_traj
 iteration = args.iteration
@@ -47,7 +47,6 @@ max_train = args.max_train
 training_period = args.max_train
 cs = args.cs
 cp = args.cp
-print(cs,cp)
 # initialize environment
 env = Env(training_period,horizon,cs,cp)
 # obssize = env.observation_space.low.size
@@ -68,12 +67,10 @@ value = Value_Net(sess,optimizer_value,feature_depth,num_asset,horizon,depth1 = 
 
 # initialize tensorflow graphs
 sess.run(tf.global_variables_initializer())
-print(iteration,numtrajs)
 # main iteration
-iteration = 10
 for ite in range(iteration):
     if ite%100==0:
-        print(ite)
+        print("ite",ite)
 
     # trajs records for batch update
     Prev_Acts = []
@@ -82,6 +79,7 @@ for ite in range(iteration):
     ADS = []  # advantages (to update policy)
     VAL = []  # value functions (to update baseline)
 
+    Sigma = np.exp(-ite * sigma_decay) * Sigma
     for num in range(numtrajs):
     # for num in range(10):
 
@@ -96,7 +94,7 @@ for ite in range(iteration):
 
         obs = env.reset()
 
-        for i in range(100):
+        for i in range(max_train):
             mu = policy.get_mu(obs,prev_acts[i]).flatten()
             mu = mu/10
             action = np.random.multivariate_normal(mu,Sigma)
@@ -106,7 +104,7 @@ for ite in range(iteration):
             newobs, reward = env.step(action,prev_acts[i])
 
             # record
-            if i != 99:
+            if i != (max_train - 1):
                 prev_acts.append(action[None,...])
             obss.append(obs)
             acts.append(action[None,...])
@@ -145,8 +143,14 @@ for ite in range(iteration):
     BAS = value.get_state_value(OBS)  # compute baseline for variance reduction
     ADS = VAL - np.squeeze(BAS,1)
 
-    policy.train_net(OBS,Prev_Acts,ADS,ACTS)  # update only one step
+    print(OBS.shape)
+    print(Prev_Acts.shape)
+    print(ADS.shape)
+    print(ACTS.shape)
 
+    policy.train_net(OBS,Prev_Acts,ADS,ACTS)  # update only one step
+policy.save()
+value.save()
 
 #### IMMEDATE TEST
 
@@ -186,11 +190,7 @@ sigma = [0.8] * num_asset
 
 Sigma = np.diag(sigma)
 
-# policy = Policy_Net(sess, feature_depth, num_asset, horizon, optimizer_policy, tc, depth1, depth2, sigma)
-# value = Value_Net(sess, optimizer_value, feature_depth, num_asset, horizon, depth1=6)
 
-# initialize tensorflow graphs
-# sess.run(tf.global_variables_initializer())
 
 # main iteration
 test_start = 12000
@@ -205,10 +205,6 @@ ACTS = []  # actions
 ADS = []  # advantages (to update policy)
 VAL = []  # value functions (to update baseline)
 
-# for num in range(numtrajs):
-#     # for num in range(10):
-#
-#     # record for each episode
 
 obss = []  # observations
 acts = []  # actions
@@ -220,11 +216,9 @@ prev_acts[0][:, -1] = 1
 #
 obs = env.test_reset(test_start)
 
-        # print('ddddd',prev_acts)
 for i in range(test_end-test_start):
     mu = policy.get_mu(obs, prev_acts[i]).flatten()
     action =mu
-    print(mu)
     newobs, reward = env.step(action, prev_acts[i])
     if i != test_end-test_start-1:
         prev_acts.append(action[None, ...])
@@ -232,16 +226,23 @@ for i in range(test_end-test_start):
     acts.append(action[None, ...])
     rews.append(reward)
 
-    # update
+    # updatex
     obs = newobs
     # compute returns from instant rewards
     returns = discounted_rewards(rews, gamma)
 
 step_reward = [np.prod(rews[:i+1]) for i in range(len(rews))]
 plot_x_range = np.arange(len(step_reward))
-plt.plot(plot_x_range,step_reward)
-plt.show()
+# plt.plot(plot_x_range,step_reward)
+# plt.show()
 
 total_reward = np.prod(rews)
+rews = np.array(rews)
+os.chdir(os.getcwd())
+if not os.path.exists("Testing_Reward"):
+    os.mkdir("Testing_Reward")
+
+np.save('./Testing_Reward/test_results', rews)
 print(rews)
 print(total_reward)
+

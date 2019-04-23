@@ -1,0 +1,2 @@
+model_checkpoint_path: "value_net.cpkt"
+all_model_checkpoint_paths: "value_net.cpkt"

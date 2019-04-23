@@ -27,7 +27,7 @@ class Env():
         self.start = np.random.randint(0,self.full_horizon - 12000)
         return self.full_state[:,:,self.start:self.start+self.horizon,:]
 
-    def step(self,action,action_prev):
+    def step(self,action,action_prev,):
         '''
         take action
 
@@ -108,13 +108,15 @@ class Env():
             right =1/(1-cp*wt[-1])*(1-cp*wt_prime[-1]-(cs+cp-cs*cp)*sum(np.maximum((wt_prime-mu*wt)[:-1].copy(),0,(wt_prime-mu*wt)[:-1].copy())))
         # if mu<0:
         #
-        print('\n')
-        print('yt',yt)
-        print('wt_1', wt_1,sum(wt_1))
-        print('wt', wt,sum(wt))
+        # print('\n')
+        # print('yt',yt)
+        # print('wt_1', wt_1,sum(wt_1))
+        # print('wt', wt,sum(wt))
         #     print('wt_prime',wt_prime)
         #     print('nominator',(yt*wt_1))
         #     print('denominator',(yt@wt_1))
         #     print()
         assert  mu>0,'mu has to be larger than 0, otherwise it means we have to much risk'
         return mu
+
+
