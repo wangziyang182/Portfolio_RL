@@ -43,8 +43,8 @@ depth1 = 2
 depth2 = 1
 max_train = args.max_train
 training_period = args.max_train
-cs = args.cs  
-cp = args.cp
+cs = args.cs/1000
+cp = args.cp/1000
 print(cs,cp)
 # initialize environment
 env = Env(training_period,horizon,cs,cp)
@@ -68,7 +68,7 @@ value = Value_Net(sess,optimizer_value,feature_depth,num_asset,horizon,depth1 = 
 sess.run(tf.global_variables_initializer())
 print(iteration,numtrajs)
 # main iteration
-iteration = 10
+iteration = 1000
 for ite in range(iteration):
     if ite%100==0:
         print(ite)
@@ -93,8 +93,8 @@ for ite in range(iteration):
         prev_acts[0][:,-1] = 1
 
         obs = env.reset()
-
-        for i in range(10):
+        
+        for i in range(100):
             mu = policy.get_mu(obs,prev_acts[i]).flatten()
             action = np.random.multivariate_normal(mu,Sigma)
 
@@ -102,7 +102,7 @@ for ite in range(iteration):
             newobs, reward = env.step(action,prev_acts[i])
 
             # record
-            if i != 9:
+            if i != 99:
                 prev_acts.append(action[None,...])
             obss.append(obs)
             acts.append(action[None,...])
