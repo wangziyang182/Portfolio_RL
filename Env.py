@@ -5,7 +5,7 @@ import pickle as pkl
 
 class Env():
 
-    def __init__(self,training_period,horizon,cs,cp):
+    def __init__(self,training_period,horizon,cs,cp,step_size):
         with open('./Data/input_tensor.pkl','rb') as f:
             #4 dimensional tensor
             #[batch,]
@@ -19,6 +19,7 @@ class Env():
         self.horizon = horizon
         self.cs =cs 
         self.cp = cp
+        self.step_size = step_size
 
     def test_reset(self,test_start):
         # self.test_start = 12000
@@ -27,7 +28,7 @@ class Env():
         self.start = np.random.randint(0,self.full_horizon - 12000)
         return self.full_state[:,:,self.start:self.start+self.horizon,:]
 
-    def step(self,action,action_prev,):
+    def step(self,action,action_prev):
         '''
         take action
 
@@ -48,7 +49,7 @@ class Env():
         # print(mu)
         r = self.get_reward(vt, vt_1,mu,wt_1)
 
-        self.start += 1
+        self.start += self.step_size
         
         return self.full_state[:,:,self.start:self.start+self.horizon,:],r
 
@@ -116,7 +117,7 @@ class Env():
         #     print('nominator',(yt*wt_1))
         #     print('denominator',(yt@wt_1))
         #     print()
-        assert  mu>0,'mu has to be larger than 0, otherwise it means we have to much risk'
+        #assert  mu>0,'mu has to be larger than 0, otherwise it means we have to much risk'
         return mu
 
 

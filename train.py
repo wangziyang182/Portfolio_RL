@@ -10,7 +10,7 @@ from Env import Env
 import os
 import time
 # import matplotlib.pyplot as plt
-
+time1 = time.time()
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 parser = argparse.ArgumentParser()
@@ -47,8 +47,9 @@ max_train = args.max_train
 training_period = args.max_train
 cs = args.cs
 cp = args.cp
+step_size = args.step_size
 # initialize environment
-env = Env(training_period,horizon,cs,cp)
+env = Env(training_period,horizon,cs,cp,step_size)
 # obssize = env.observation_space.low.size
 actsize = env.action_space
 
@@ -81,6 +82,7 @@ for ite in range(iteration):
 
     Sigma = np.exp(-ite * sigma_decay) * Sigma
     for num in range(numtrajs):
+
     # for num in range(10):
 
         # record for each episode
@@ -89,16 +91,18 @@ for ite in range(iteration):
         prev_acts = []
         rews = []  # instant rewards
 
-        prev_acts.append(np.zeros((1,10)))
+        prev_acts.append(np.zeros((1,num_asset)))
         prev_acts[0][:,-1] = 1
 
         obs = env.reset()
-
+        # print('trajectory',num)
+        # print("-" * 100)
         for i in range(max_train):
             mu = policy.get_mu(obs,prev_acts[i]).flatten()
-            mu = mu/10
+            mu = mu
             action = np.random.multivariate_normal(mu,Sigma)
-            action[-1] = 1-sum(action[:-1])
+            # print(action)
+            # action[-1] = 1-sum(action[:-1])
 
             # action = np.random.choice(actsize, p=prob.flatten(), size=1)
             newobs, reward = env.step(action,prev_acts[i])
@@ -106,6 +110,8 @@ for ite in range(iteration):
             # record
             if i != (max_train - 1):
                 prev_acts.append(action[None,...])
+            # print(action[None,...])
+
             obss.append(obs)
             acts.append(action[None,...])
             rews.append(reward)
@@ -171,7 +177,7 @@ cs = args.cs
 cp = args.cp
 
 # initialize environment
-env = Env(training_period, horizon, cs, cp)
+env = Env(training_period, horizon, cs, cp,step_size)
 # obssize = env.observation_space.low.size
 actsize = env.action_space
 
@@ -206,17 +212,18 @@ acts = []  # actions
 prev_acts = []
 rews = []  # instant rewards
 #
-prev_acts.append(np.zeros((1, 10)))
+prev_acts.append(np.zeros((1, num_asset)))
 prev_acts[0][:, -1] = 1
 #
 obs = env.test_reset(test_start)
 
 for i in range(test_end-test_start):
     mu = policy.get_mu(obs, prev_acts[i]).flatten()
-    action =mu
+    action = mu
     newobs, reward = env.step(action, prev_acts[i])
     if i != test_end-test_start-1:
         prev_acts.append(action[None, ...])
+    print(action[None,...])
     obss.append(obs)
     acts.append(action[None, ...])
     rews.append(reward)
@@ -240,7 +247,10 @@ if not os.path.exists("Testing_Reward"):
 np.save('./Testing_Reward/test_results', rews)
 def sharpe(p):
     w = [np.prod(p[:i+1]) for i in range(len(p))]
-    return np.mean(w)/np.std(w)
+    return (np.mean(w) - 1.01)/np.std(w)
 print(rews)
 print(total_reward)
 print('sharpe ratio is ',sharpe(rews))
+time2 = time.time()
+
+print(time2 - time1)

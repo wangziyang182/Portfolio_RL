@@ -71,9 +71,8 @@ class Value_Net():
             os.mkdir("Model_Params")
         self.saver.save(self.sess,"./Model_Params/value_net.cpkt")
 
-    
-
-
+    def restore(self):
+        self.saver.restore(self.sess, "./Model_Params/value_net.ckpt")
 
 
 

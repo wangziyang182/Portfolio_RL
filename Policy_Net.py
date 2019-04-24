@@ -28,7 +28,7 @@ class Policy_Net():
 
         with tf.variable_scope('input'):
             self.state_tensor = tf.placeholder(tf.float32,[None,self.num_asset,self.horizon,self.feature_depth])
-            self.normalize_state_tensosr = tf.div(self.state_tensor,self.state_tensor[:,:,-1:,:])
+            self.normalize_state_tensor = (tf.div(self.state_tensor,self.state_tensor[:,:,-1:,:])) * 100
             self.w_t_prev = tf.placeholder(tf.float32,[None,self.num_asset]) #+ 1])
 
         with tf.variable_scope('policy_net'):
@@ -36,13 +36,13 @@ class Policy_Net():
 
             with tf.variable_scope('conv1'):
                 self.conv1 = tf.layers.conv2d(
-                    self.state_tensor,
+                    self.normalize_state_tensor,
                     filters = depth1,
                     kernel_size = [1,3],
                     strides=(1, 1),
                     padding='valid',
                     data_format='channels_last',
-                    activation=tf.nn.relu,
+                    activation=tf.nn.tanh,
                     kernel_initializer=tf.random_normal_initializer(stddev=0.1, dtype=tf.float32),
                     bias_initializer=tf.zeros_initializer(),
                 )
@@ -55,7 +55,7 @@ class Policy_Net():
                     strides=(1, 1),
                     padding='valid',
                     data_format='channels_last',
-                    activation=tf.nn.relu,
+                    activation=tf.nn.tanh,
                     kernel_initializer=tf.random_normal_initializer(stddev=0.1, dtype=tf.float32),
                     bias_initializer=tf.zeros_initializer(),
                 )
@@ -118,6 +118,9 @@ class Policy_Net():
         if not os.path.exists("Model_Params"):
             os.mkdir("Model_Params")
         self.saver.save(self.sess,"./Model_Params/policy_net.cpkt")
+
+    def restore(self):
+        self.saver.restore(self.sess, "./Model_Params/policy_net.ckpt")
 
 
 if __name__ == '__main__':

@@ -31,6 +31,7 @@ value_lr = args.learning_rate_value_net
 gamma = args.discount_rate
 tc = args.transcation_cost
 
+
 Simga = args.sigma
 Sigma = np.identity(10)*0.01
 sigma_decay = args.variance_decay
@@ -40,13 +41,13 @@ depth1 = 2
 depth2 = 1
 max_train = args.max_train
 training_period = args.max_train
+step_size = args.step_size
 cs = 1e-3
 # args.cs
 cp = 1e-3
-    # args.cp
 
 # initialize environment
-env = Env(training_period, horizon, cs, cp)
+env = Env(training_period, horizon, cs, cp,step_size)
 # obssize = env.observation_space.low.size
 actsize = env.action_space
 
@@ -62,16 +63,15 @@ Sigma = np.diag(sigma)
 
 policy = Policy_Net(sess, feature_depth, num_asset, horizon, optimizer_policy, tc, depth1, depth2, sigma)
 value = Value_Net(sess, optimizer_value, feature_depth, num_asset, horizon, depth1=6)
-
+# policy.restore()
+# value.restore()
 # initialize tensorflow graphs
 sess.run(tf.global_variables_initializer())
 
 # main iteration
-test_start = 12000
-test_end = 12010
+test_start = 12050
+test_end = 12100
 total_rews = []
-
-    # trajs records for batch update
 
 Prev_Acts = []
 OBS = []  # observations
@@ -89,25 +89,31 @@ acts = []  # actions
 prev_acts = []
 rews = []  # instant rewards
 #
-prev_acts.append(np.zeros((1, 10)))
+prev_acts.append(np.zeros((1, num_asset)))
 prev_acts[0][:, -1] = 1
 #
 obs = env.test_reset(test_start)
 
         # print('ddddd',prev_acts)
 for i in range(test_end-test_start):
+    # print('obs',obs[0,2,:,3])
+    # print('fl',sess.run(policy.fl,feed_dict = {policy.state_tensor:obs,policy.w_t_prev:prev_acts[i]}))
+    # print('nornamlized_obs',sess.run(policy.normalize_state_tensor,feed_dict = {policy.state_tensor:obs,policy.w_t_prev:prev_acts[i]})[0,0,:,3])
     mu = policy.get_mu(obs, prev_acts[i]).flatten()
 
-    mu = mu / 10
-    mu[-1] = 1 - sum(mu[:-1])
+
+    mu = mu
+    # mu[-1] = 1 - sum(mu[:-1])
     action = mu
     newobs, reward = env.step(action, prev_acts[i])
     if i != test_end-test_start-1:
         prev_acts.append(action[None, ...])
+    print(action[None,...])
     obss.append(obs)
     acts.append(action[None, ...])
     rews.append(reward)
 
+    print(obs[0,0,:,3])
     # update
     obs = newobs
     # compute returns from instant rewards
